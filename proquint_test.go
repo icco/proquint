@@ -5,8 +5,22 @@ import (
 	"testing"
 )
 
+func TestGenerateFail(t *testing.T) {
+	tests := []int{-1, 0}
+	for _, i := range tests {
+		tc := i
+		t.Run(strconv.Itoa(tc), func(t *testing.T) {
+			t.Parallel()
+			_, err := Generate(tc)
+			if err == nil {
+				t.Errorf("expected error for %d", tc)
+			}
+		})
+	}
+}
+
 func TestGenerate(t *testing.T) {
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 1000; i++ {
 		tc := i
 		t.Run(strconv.Itoa(tc), func(t *testing.T) {
 			t.Parallel()
