@@ -14,7 +14,7 @@ var (
 	vowels     = []string{"a", "e", "i", "o", "u", "r"}
 )
 
-// Generate creates a proquint of of the length of words, seperated by a dash.
+// Generate creates a proquint of of the length of words, separated by a dash.
 func Generate(words int) (string, error) {
 	if words <= 0 {
 		return "", fmt.Errorf("cannot generate less than one word")
