@@ -23,7 +23,7 @@ func Generate(words int) (string, error) {
 
 	var ret []string
 
-	for i := 0; i <= words; i++ {
+	for i := 0; i < words; i++ {
 		var word []string
 		for j := 0; j < 5; j++ {
 			var letter string
