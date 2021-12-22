@@ -12,10 +12,9 @@ script:
   - go test -cover ./...
   - go test -bench ''
   - go vet ./...
+  - go get honnef.co/go/tools/cmd/staticcheck
   - go install honnef.co/go/tools/cmd/staticcheck
   - staticcheck -go $TRAVIS_GO_VERSION ./...
-  - go get -v -u -d github.com/fzipp/gocyclo/cmd/gocyclo
-  - go run github.com/fzipp/gocyclo/cmd/gocyclo -avg .
 notifications:
   email:
     on_success: change
