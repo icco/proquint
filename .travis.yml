@@ -1,6 +1,9 @@
 # https://docs.travis-ci.com/user/languages/go
 language: go
-sudo: false
+dist:
+  - xenial
+  - focal
+os: linux
 go:
   - "1.14"
   - "1.15"
