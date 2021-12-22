@@ -3,6 +3,7 @@
 package proquint
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -13,7 +14,11 @@ var (
 	vowels     = []string{"a", "e", "i", "o", "u", "r"}
 )
 
-func Generate(words int) string {
+func Generate(words int) (string, error) {
+	if words <= 0 {
+		return "", fmt.Errorf("cannot generate less than one word")
+	}
+
 	rand.Seed(time.Now().Unix())
 
 	var ret []string
@@ -33,5 +38,5 @@ func Generate(words int) string {
 		ret = append(ret, strings.Join(word, ""))
 	}
 
-	return strings.Join(ret, "-")
+	return strings.Join(ret, "-"), nil
 }
