@@ -13,7 +13,7 @@ var (
 	vowels     = []string{"a", "e", "i", "o", "u", "r"}
 )
 
-func Generate(int words) string {
+func Generate(words int) string {
 	rand.Seed(time.Now().Unix())
 
 	var ret []string
