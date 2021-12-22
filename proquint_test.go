@@ -14,7 +14,10 @@ func TestGenerate(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			t.Logf("generated %q for %d", v, tc)
+
+			if t.Verbose() {
+				t.Logf("generated %q for %d", v, tc)
+			}
 
 			expectedLen := tc*6 - 1
 			if len(v) != expectedLen {
@@ -26,6 +29,15 @@ func TestGenerate(t *testing.T) {
 
 func BenchmarkGenerateThree(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Generate(3)
+		tc := 3
+		v, err := Generate(tc)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if t.Verbose() {
+			t.Logf("generated %q for %d", v, tc)
+		}
+
 	}
 }
