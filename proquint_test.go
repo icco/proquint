@@ -15,7 +15,7 @@ func TestGenerate(t *testing.T) {
 				t.Error(err)
 			}
 
-			if t.Verbose() {
+			if testing.Verbose() {
 				t.Logf("generated %q for %d", v, tc)
 			}
 
@@ -32,11 +32,11 @@ func BenchmarkGenerateThree(b *testing.B) {
 		tc := 3
 		v, err := Generate(tc)
 		if err != nil {
-			t.Error(err)
+			b.Error(err)
 		}
 
-		if t.Verbose() {
-			t.Logf("generated %q for %d", v, tc)
+		if testing.Verbose() {
+			b.Logf("generated %q for %d", v, tc)
 		}
 
 	}
