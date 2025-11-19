@@ -1,0 +1,113 @@
+name: Auto Release
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get last tag
+        id: last_tag
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "version=0.0.0" >> $GITHUB_OUTPUT
+            echo "tag=v0.1.0" >> $GITHUB_OUTPUT
+            echo "exists=false" >> $GITHUB_OUTPUT
+          else
+            # Remove 'v' prefix if present
+            VERSION=${LAST_TAG#v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$LAST_TAG" >> $GITHUB_OUTPUT
+            echo "exists=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ "${{ steps.last_tag.outputs.exists }}" == "false" ]; then
+            # No previous tag, check if there are any commits
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+            if [ "$COMMIT_COUNT" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Check if there are commits since last tag
+            COMMITS_SINCE_TAG=$(git rev-list ${{ steps.last_tag.outputs.tag }}..HEAD --count)
+            if [ "$COMMITS_SINCE_TAG" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Calculate next version
+        id: next_version
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          if [ "${{ steps.last_tag.outputs.exists }}" == "false" ]; then
+            # First release
+            NEXT_VERSION="v0.1.0"
+          else
+            # Parse current version
+            CURRENT_VERSION="${{ steps.last_tag.outputs.version }}"
+            MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+            MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+            PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+            
+            # Check commit messages for version bump type
+            COMMITS=$(git log ${{ steps.last_tag.outputs.tag }}..HEAD --pretty=format:"%s")
+            
+            # Check for breaking changes (major version)
+            if echo "$COMMITS" | grep -qiE "(breaking|major|!:)"; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            # Check for new features (minor version)
+            elif echo "$COMMITS" | grep -qiE "(feat|feature|minor)"; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            else
+              # Default to patch version
+              PATCH=$((PATCH + 1))
+            fi
+            
+            NEXT_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+          
+          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git tag -a "${{ steps.next_version.outputs.version }}" -m "Automated release: ${{ steps.next_version.outputs.version }}"
+          git push origin "${{ steps.next_version.outputs.version }}"
+
+      - name: No changes message
+        if: steps.changes.outputs.has_changes == 'false'
+        run: |
+          echo "No changes detected since last release. Skipping tag creation."
+
