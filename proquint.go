@@ -4,9 +4,9 @@ package proquint
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strings"
-	"time"
 )
 
 var (
@@ -15,28 +15,19 @@ var (
 )
 
 // Generate creates a proquint of of the length of words, separated by a dash.
+//
+// https://merveilles.town/@flbr/115574222078642407
 func Generate(words int) (string, error) {
 	if words <= 0 {
 		return "", fmt.Errorf("cannot generate less than one word")
 	}
 
-	rand.Seed(time.Now().Unix())
-
 	var ret []string
 
 	for i := 0; i < words; i++ {
-		var word []string
-		for j := 0; j < 5; j++ {
-			var letter string
-			if j%2 != 0 {
-				letter = vowels[rand.Intn(len(vowels))]
-			} else {
-				letter = consonants[rand.Intn(len(consonants))]
-			}
-
-			word = append(word, letter)
-		}
-		ret = append(ret, strings.Join(word, ""))
+		n := rand.Intn(int(math.Pow(2, 16)))
+		word := fmt.Sprintf("%s%s%s%s%s", consonants[n>>12], vowels[(n>>10)&3], consonants[(n>>6)&15], vowels[(n>>4)&3], consonants[n&15])
+		ret = append(ret, word)
 	}
 
 	return strings.Join(ret, "-"), nil
