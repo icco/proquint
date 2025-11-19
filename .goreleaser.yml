@@ -1,5 +1,4 @@
 project_name: proquint
-
 builds:
   - env:
       - CGO_ENABLED=0
@@ -13,19 +12,15 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-
 archives:
   - format_overrides:
       - goos: windows
         format: zip
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
-
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
-
 snapshot:
-  name_template: "{{ .Tag }}-next"
-
+  name_template: '{{ .Tag }}-next'
 changelog:
   sort: asc
   filters:
@@ -33,4 +28,3 @@ changelog:
       - '^docs:'
       - '^test:'
       - '^chore:'
-

@@ -1,14 +1,11 @@
 name: Auto Release
-
 on:
   schedule:
     # Run daily at 00:00 UTC
-    - cron: '0 0 * * *'
+    - cron: 0 0 * * *
   workflow_dispatch: # Allow manual triggering
-
 permissions:
   contents: write
-
 jobs:
   check-and-release:
     runs-on: ubuntu-latest
@@ -18,15 +15,12 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Fetch all tags
         run: git fetch --tags
-
       - name: Get last tag
         id: last_tag
         run: |
@@ -42,7 +36,6 @@ jobs:
             echo "tag=$LAST_TAG" >> $GITHUB_OUTPUT
             echo "exists=true" >> $GITHUB_OUTPUT
           fi
-
       - name: Check for changes
         id: changes
         run: |
@@ -63,51 +56,16 @@ jobs:
               echo "has_changes=false" >> $GITHUB_OUTPUT
             fi
           fi
-
       - name: Calculate next version
         id: next_version
         if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          if [ "${{ steps.last_tag.outputs.exists }}" == "false" ]; then
-            # First release
-            NEXT_VERSION="v0.1.0"
-          else
-            # Parse current version
-            CURRENT_VERSION="${{ steps.last_tag.outputs.version }}"
-            MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
-            MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
-            PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
-            
-            # Check commit messages for version bump type
-            COMMITS=$(git log ${{ steps.last_tag.outputs.tag }}..HEAD --pretty=format:"%s")
-            
-            # Check for breaking changes (major version)
-            if echo "$COMMITS" | grep -qiE "(breaking|major|!:)"; then
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-            # Check for new features (minor version)
-            elif echo "$COMMITS" | grep -qiE "(feat|feature|minor)"; then
-              MINOR=$((MINOR + 1))
-              PATCH=0
-            else
-              # Default to patch version
-              PATCH=$((PATCH + 1))
-            fi
-            
-            NEXT_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          fi
-          
-          echo "version=$NEXT_VERSION" >> $GITHUB_OUTPUT
-
+        run: "if [ \"${{ steps.last_tag.outputs.exists }}\" == \"false\" ]; then\n  # First release\n  NEXT_VERSION=\"v0.1.0\"\nelse\n  # Parse current version\n  CURRENT_VERSION=\"${{ steps.last_tag.outputs.version }}\"\n  MAJOR=$(echo \"$CURRENT_VERSION\" | cut -d. -f1)\n  MINOR=$(echo \"$CURRENT_VERSION\" | cut -d. -f2)\n  PATCH=$(echo \"$CURRENT_VERSION\" | cut -d. -f3)\n  \n  # Check commit messages for version bump type\n  COMMITS=$(git log ${{ steps.last_tag.outputs.tag }}..HEAD --pretty=format:\"%s\")\n  \n  # Check for breaking changes (major version)\n  if echo \"$COMMITS\" | grep -qiE \"(breaking|major|!:)\"; then\n    MAJOR=$((MAJOR + 1))\n    MINOR=0\n    PATCH=0\n  # Check for new features (minor version)\n  elif echo \"$COMMITS\" | grep -qiE \"(feat|feature|minor)\"; then\n    MINOR=$((MINOR + 1))\n    PATCH=0\n  else\n    # Default to patch version\n    PATCH=$((PATCH + 1))\n  fi\n  \n  NEXT_VERSION=\"v${MAJOR}.${MINOR}.${PATCH}\"\nfi\n\necho \"version=$NEXT_VERSION\" >> $GITHUB_OUTPUT\n"
       - name: Create and push tag
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           git tag -a "${{ steps.next_version.outputs.version }}" -m "Automated release: ${{ steps.next_version.outputs.version }}"
           git push origin "${{ steps.next_version.outputs.version }}"
-
       - name: No changes message
         if: steps.changes.outputs.has_changes == 'false'
         run: |
           echo "No changes detected since last release. Skipping tag creation."
-
