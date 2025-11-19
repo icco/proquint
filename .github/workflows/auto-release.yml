@@ -1,0 +1,20 @@
+name: Auto Release
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: 0 0 * * *
+  workflow_dispatch: # Allow manual triggering
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
