@@ -2,8 +2,7 @@ branches:
   - main
 plugins:
   - - '@semantic-release/commit-analyzer'
-    - preset: conventionalcommits
-      releaseRules:
+    - releaseRules:
         - breaking: true
           release: major
         - revert: true
