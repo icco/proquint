@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PINGCI_TOKEN }}
+          token: ${{ secrets.github_token }}
           fetch-depth: 0
       - uses: reviewdog/action-misspell@v1
         with:
@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PINGCI_TOKEN }}
+          token: ${{ secrets.github_token }}
           fetch-depth: 0
       - uses: reviewdog/action-yamllint@v1
         with:
@@ -47,17 +47,13 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PINGCI_TOKEN }}
+          token: ${{ secrets.github_token }}
           fetch-depth: 0
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: "1.20"
           cache: true
-      - name: Configure git for private modules
-        env:
-          TOKEN: ${{ secrets.PINGCI_TOKEN }}
-        run: git config --global url."https://ping-ci:${TOKEN}@github.com".insteadOf "https://github.com"
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
         env:
@@ -66,81 +62,3 @@ jobs:
           golangci_lint_version: v1.64.8
           level: warning
           golangci_lint_flags: --timeout=15m
-  tofu-lint:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    strategy:
-      matrix:
-        environment: ${{ fromJson(inputs.environments) }}
-    steps:
-      - uses: actions/checkout@v5
-        name: Checkout source code
-        with:
-          token: ${{ secrets.PINGCI_TOKEN }}
-          fetch-depth: 0
-      - uses: opentofu/setup-opentofu@v1
-        name: Setup opentofu
-        with:
-          tofu_version: 1.10.0
-      - name: Setup tflint with cache
-        uses: terraform-linters/setup-tflint@v6
-        with:
-          tflint_version: v0.58.0
-          github_token: ${{ secrets.github_token }}
-      - name: Cache OpenTofu/TF plugins
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-tofu-${{ hashFiles('**/.terraform.lock.hcl') }}
-          restore-keys: |
-            ${{ runner.os }}-tofu-
-      - name: Setup Spacelift credentials
-        run: |
-          mkdir -p ~/.terraform.d/
-          cat > ~/.terraform.d/credentials.tfrc.json << EOF
-          {
-            "credentials": {
-              "spacelift.io": {
-                "token": "${{ secrets.TF_TOKEN_SPACELIFT }}"
-              }
-            }
-          }
-          EOF
-          echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraform.d/terraform.rc
-          mkdir -p ~/.terraform.d/plugin-cache
-      - name: Run tflint --fix
-        run: |
-          cd terraform/${{ matrix.environment }}
-          echo "Running tflint --fix for ${{ matrix.environment }}"
-          tflint --init
-          tflint --fix --force
-      - uses: stefanzweifel/git-auto-commit-action@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.PINGCI_TOKEN }}
-        id: auto-commit-action
-        with:
-          commit_message: 'chore: lint tofu'
-          commit_author: Laurel CI <ci@laurel.ai>
-          commit_user_name: ping-ci
-          commit_user_email: ci@laurel.ai
-      - name: tflint reviewdog
-        uses: reviewdog/action-tflint@v1
-        with:
-          github_token: ${{ secrets.PINGCI_TOKEN }}
-          reporter: github-pr-review
-          level: warning
-          filter_mode: nofilter
-      - uses: reviewdog/action-terraform-validate@v1
-        env:
-          TF_TOKEN_spacelift_io: ${{ secrets.TF_TOKEN_SPACELIFT }}
-        with:
-          github_token: ${{ secrets.PINGCI_TOKEN }}
-          reporter: github-pr-review
-          level: warning
-          workdir: ./terraform/${{ matrix.environment }}
-          name: tofu validate ${{ matrix.environment }}
-          cli: opentofu
-          filter_mode: nofilter
-          terraform_version: 1.10.0
